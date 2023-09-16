@@ -3,20 +3,66 @@ import { Ionicons } from "@expo/vector-icons";
 import { tracks } from "../assets/data/tracks";
 import { Track } from "../types";
 import { usePlayerContext } from "../providers/PlayerProvider";
-import { useState } from "react";
-
-const track = tracks[0];
+import { useEffect, useState } from "react";
+import { AVPlaybackStatus, Audio } from "expo-av";
+import { Sound } from "expo-av/build/Audio";
 
 const Player = () => {
+    const [sound, setSound] = useState<Sound>();
+    const [isPlaying, setIsPlaying] = useState(false);
     const { track } = usePlayerContext();
+
+    useEffect(() => {
+        playTrack();
+    }, [track]);
+
+    useEffect(() => {
+        return sound
+            ? () => {
+                  console.log("unloading sound");
+                  sound.unloadAsync();
+              }
+            : undefined;
+    }, [sound]);
+
+    const playTrack = async () => {
+        if (sound) {
+            await sound.unloadAsync();
+        }
+
+        if (!track?.preview_url) {
+            return;
+        }
+
+        const { sound: newSound } = await Audio.Sound.createAsync({
+            uri: track.preview_url,
+        });
+
+        setSound(newSound);
+        newSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+        await newSound.playAsync();
+    };
+
+    const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+        console.log(status);
+        if (!status.isLoaded) return;
+
+        setIsPlaying(status.isPlaying);
+    };
+
+    const handlePause = async () => {
+        if (!sound) return;
+        if (isPlaying) {
+            await sound.pauseAsync();
+        } else {
+            await sound.playAsync();
+        }
+    };
 
     if (!track) {
         return null;
     }
-
-    const image = track.album.images?.[0];
-
-    const [liked, setLiked] = useState(false);
+    const image = track?.album.images?.[0];
 
     return (
         <View style={styles.container}>
@@ -26,25 +72,24 @@ const Player = () => {
                 )}
 
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.title}>{track.name}</Text>
+                    <Text style={styles.title}>{track?.name}</Text>
                     <Text style={styles.subtitle}>
-                        {track.artists[0]?.name}
+                        {track?.artists[0]?.name}
                     </Text>
                 </View>
 
-                <Pressable onPress={() => setLiked(!liked)}>
-                    <Ionicons
-                        name={liked ? "heart" : "heart-outline"}
-                        size={20}
-                        color={liked ? "red" : "white"}
-                        style={{ marginHorizontal: 10 }}
-                    />
-                </Pressable>
+                <Ionicons
+                    name={"heart"}
+                    size={20}
+                    color={"white"}
+                    style={{ marginHorizontal: 10 }}
+                />
                 <Ionicons
                     disabled={!track?.preview_url}
-                    name={"play"}
+                    name={isPlaying ? "pause" : "play"}
                     size={20}
                     color={track?.preview_url ? "white" : "gray"}
+                    onPress={handlePause}
                 />
             </View>
         </View>
