@@ -1,31 +1,57 @@
-import { StyleSheet } from 'react-native';
+import { FlatList, StyleSheet, TextInput } from "react-native";
 
-import EditScreenInfo from '../../components/EditScreenInfo';
-import { Text, View } from '../../components/Themed';
+import { tracks } from "../../assets/data/tracks";
+import TrackListItem from "../../components/TrackListItem";
+import { Text, View } from "../../components/Themed";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FontAwesome } from "@expo/vector-icons";
+import { useState } from "react";
 
-export default function TabTwoScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
-    </View>
-  );
+export default function SearchScreen() {
+    const [search, setSearch] = useState("");
+    return (
+        <SafeAreaView>
+            <View style={styles.header}>
+                <FontAwesome name="search" size={20} color={"#666"} />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="What do you want to listen?"
+                    placeholderTextColor="#aaa"
+                    value={search}
+                    onChangeText={setSearch}
+                />
+                <Text
+                    style={{ color: "red", fontSize: 16 }}
+                    onPress={() => setSearch("")}
+                >
+                    Cancel
+                </Text>
+            </View>
+            <FlatList
+                data={tracks}
+                renderItem={({ item }) => <TrackListItem track={item} />}
+                showsVerticalScrollIndicator={false}
+            />
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 50,
+        marginHorizontal: 8,
+    },
+    input: {
+        flex: 1,
+        marginHorizontal: 12,
+        borderRadius: 4,
+        color: "#666",
+        padding: 12,
+    },
+    container: {},
 });
