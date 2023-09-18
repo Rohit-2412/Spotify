@@ -1,11 +1,54 @@
-import { FlatList, StyleSheet } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet } from "react-native";
 
 import { Text, View } from "../../components/Themed";
-import { tracks } from "../../assets/data/tracks";
 import TrackListItem from "../../components/TrackListItem";
-import Player from "../../components/Player";
+import { gql, useQuery } from "@apollo/client";
 
+const query = gql`
+    query getRecommendations($genres: String!) {
+        recommendations(seed_genres: $genres) {
+            tracks {
+                id
+                name
+                preview_url
+                artists {
+                    id
+                    name
+                }
+                album {
+                    id
+                    name
+                    images {
+                        width
+                        height
+                        url
+                    }
+                }
+            }
+        }
+    }
+`;
 export default function HomeScreen() {
+    const { data, loading, error } = useQuery(query, {
+        variables: { genres: "indian" },
+    });
+
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator />
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
+    if (error) {
+        return (
+            <View style={styles.container}>
+                <Text>Failed to fetch the recommendations</Text>
+            </View>
+        );
+    }
+    const tracks = data?.recommendations?.tracks || [];
     return (
         <>
             <FlatList

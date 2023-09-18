@@ -6,11 +6,49 @@ import { usePlayerContext } from "../providers/PlayerProvider";
 import { useEffect, useState } from "react";
 import { AVPlaybackStatus, Audio } from "expo-av";
 import { Sound } from "expo-av/build/Audio";
+import { gql, useMutation, useQuery } from "@apollo/client";
+
+const addFavorite = gql`
+    mutation MyMutation($trackId: String!, $userId: String!) {
+        insertFavorites(trackid: $trackId, userid: $userId) {
+            id
+            trackid
+            userid
+        }
+    }
+`;
+
+const isFavoriteQuery = gql`
+    query MyQuery($userID: String!, $trackId: String!) {
+        favoritesByTrackidAndUserid(userid: $userID, trackid: $trackId) {
+            id
+            trackid
+            userid
+        }
+    }
+`;
+
+const removeFavoriteMutation = gql`
+    mutation MyMutation($trackId: String!, $userId: String!) {
+        deleteFavorites(trackid: $trackId, userid: $userId) {
+            id
+        }
+    }
+`;
 
 const Player = () => {
     const [sound, setSound] = useState<Sound>();
     const [isPlaying, setIsPlaying] = useState(false);
     const { track } = usePlayerContext();
+
+    const [insertFavorite] = useMutation(addFavorite);
+    const [removeFavorite] = useMutation(removeFavoriteMutation);
+
+    const { data, refetch } = useQuery(isFavoriteQuery, {
+        variables: { userID: "rohit", trackId: track?.id || "" },
+    });
+
+    const isLiked = data?.favoritesByTrackidAndUserid?.length > 0;
 
     useEffect(() => {
         playTrack();
@@ -44,7 +82,7 @@ const Player = () => {
     };
 
     const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-        console.log(status);
+        // console.log(status);
         if (!status.isLoaded) return;
 
         setIsPlaying(status.isPlaying);
@@ -64,6 +102,27 @@ const Player = () => {
     }
     const image = track?.album.images?.[0];
 
+    const handleLike = async () => {
+        if (!track) return;
+        if (isLiked) {
+            await removeFavorite({
+                variables: {
+                    userId: "rohit",
+                    trackId: track.id,
+                },
+            });
+        } else {
+            await insertFavorite({
+                variables: {
+                    userId: "rohit",
+                    trackId: track.id,
+                },
+            });
+        }
+
+        refetch();
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.player}>
@@ -79,10 +138,11 @@ const Player = () => {
                 </View>
 
                 <Ionicons
-                    name={"heart"}
+                    name={isLiked ? "heart" : "heart-outline"}
                     size={20}
-                    color={"white"}
+                    color={isLiked ? "red" : "white"}
                     style={{ marginHorizontal: 10 }}
+                    onPress={handleLike}
                 />
                 <Ionicons
                     disabled={!track?.preview_url}
